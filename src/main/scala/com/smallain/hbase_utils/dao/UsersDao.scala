@@ -3,7 +3,7 @@ package com.smallain.hbase_utils.dao
 import java.io.IOException
 import java.util
 
-import com.smallain.hbase_utils.model.User
+import com.smallain.company.model.User
 import org.apache.hadoop.hbase.client.Delete
 import org.apache.hadoop.hbase.client.Get
 import org.apache.hadoop.hbase.client.HTableInterface
@@ -20,6 +20,8 @@ import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.MutableList
 
 case class UsersDao(poolPara: HTablePool) {
+  
+  
   val TABLE_NAME: Array[Byte] = Bytes.toBytes("users")
   val INFO_FAM: Array[Byte] = Bytes.toBytes("info")
   val USER_COL: Array[Byte] = Bytes.toBytes("user")
