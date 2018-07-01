@@ -1,5 +1,5 @@
 package com.smallain.company.model
-
+//import com.smallain.adt.OptionModule._
 object RdbmsModel {
 
 	//关系型数据库AlterJson格式定义(大类)
