@@ -1,6 +1,6 @@
 package com.smallain.company.model
 //import com.smallain.adt.OptionModule._
-object RdbmsModel {
+object AlterTableModel {
 
 	//关系型数据库AlterJson格式定义(大类)
 	case class DataBaseAlterJson(

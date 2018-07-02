@@ -3,7 +3,7 @@ package com.smallain.company
 import com.smallain.hbase_utils.dao.UsersDao
 import org.apache.hadoop.hbase._
 import org.apache.hadoop.hbase.client.HTablePool
-import com.smallain.hbase_utils.dao.CreateTable._
+//import com.smallain.hbase_utils.dao.TableDao._
 import org.apache.hadoop.hbase.client.HTable
 import org.apache.hadoop.hbase.client.Put
 import org.apache.hadoop.hbase.util.Bytes
