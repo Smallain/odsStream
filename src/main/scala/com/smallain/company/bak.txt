@@ -1,0 +1,7 @@
+//写入本地文件测试
+    //        val query = dss.writeStream
+    //          .format("csv")
+    //          .outputMode("append")
+    //          .option("checkpointLocation", "C:\\work_Some\\spark_stream_checkpoint")
+    //          .option("path", "C:\\work_Some\\file_dir")
+    //          .start()
