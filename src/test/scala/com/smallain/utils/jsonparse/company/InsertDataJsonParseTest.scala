@@ -8,7 +8,7 @@ class InsertDataJsonParseTest extends FunSuite {
   test("testInsertDataParse") {
     val str = "{\"database\":\"wuyuhang\",\"table\":\"wuyuhang_test\",\"type\":\"insert\",\"ts\":1530516170,\"xid\":668,\"commit\":true,\"data\":{\"name\":\"a\",\"age\":\"23\",\"city\":\"c\"}}"
     val rep = insertDataParse(str)
-    assert(rep===("name","a"))
+    assert(rep===("{\"name\":\"a\",\"age\":\"23\",\"city\":\"c\"}"))
   }
 
 }

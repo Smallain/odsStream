@@ -1,5 +1,6 @@
 package com.smallain.hbase_utils.sink
 
+import java.time.Instant
 import java.util.Date
 
 import com.smallain.hbase_utils.dao.TableDao
@@ -7,7 +8,7 @@ import com.smallain.utils.jsonparse.company.InsertDataJsonParse._
 import org.apache.hadoop.hbase.HBaseConfiguration
 import org.apache.hadoop.hbase.client.HTablePool
 import org.apache.spark.sql.ForeachWriter
-
+import com.smallain.utils.Md5Utils._
 
 /**
   * 自定义ForeachWriter,因为Structed Streaming的built-in output sinks只有以下几种：
@@ -56,14 +57,14 @@ class HbaseSink() extends ForeachWriter[String] {
     val now = new Date()
 
     //生产当前时间戳
-    def getCurrent_time: Long = {
-      val a = now.getTime
-      var str = a + ""
-      str.substring(0, 10).toLong
-    }
+    val millisecond = Instant.now().toEpochMilli; // 精确到毫秒 13 位
+    val second = Instant.now().getEpochSecond; // 精确到秒 10位
 
-    val timestamp = getCurrent_time
+    //数据加盐(salt):根据时间戳hash后对regionserver数量取模后确定数据加盐前缀
+    val salt = new Integer(millisecond.hashCode()).shortValue() % 46
 
+    //row_key等于 rowkey= 数据加盐前缀+“|”+时间戳”
+    val rowkey = salt.toString + "|" + md5HashString(millisecond.toString)
 
     //将dataset中的数据值,根据模式匹配去处理不同类型的json数据,包括insert,update,delete等,返回的dataset包含处理后的json字符串结果
     val resp = value match {
@@ -72,7 +73,7 @@ class HbaseSink() extends ForeachWriter[String] {
 
     //然后将处理后的结果通过hbase写入函数写入数据库,注意其中列簇因为无法明确获取，因为并不知道列簇所位于的具体位置,所以此处的列簇指定为“info”,因为binlog中并不会有列簇信息,
     //只有解析目标表hbase去获取列簇信息,但是binlog中的列无法动态识别如何与目标hbase表的列簇对应
-    resp.foreach(column => td.putTable(column._1, timestamp.toString + column._1, "info", column._2, column._3))
+    resp.foreach(column => td.putTable(tableName = column._1, rowKey = rowkey, "info", columns = column._2, value = column._3))
 
   }
 
