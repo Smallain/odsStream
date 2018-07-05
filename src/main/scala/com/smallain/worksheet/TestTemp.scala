@@ -1,11 +1,8 @@
-package com.smallain.utils
+package com.smallain.worksheet
 
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.Date
-
-import org.apache.hadoop.hbase.util.Bytes
-import com.smallain.utils.TransLongTimeStamp._
 
 object TestTemp extends App {
   def transLongTimeStampToString(timestamp: String): String = {

@@ -1,9 +1,11 @@
 package com.smallain.utils.jsonparse.company
 
 
+import org.apache.spark.sql.SparkSession
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.DefaultFormats
+import com.smallain.hbase_utils.util.GetSourceTablePK._
 
 object InsertDataJsonParse {
 
@@ -15,10 +17,11 @@ object InsertDataJsonParse {
     * city也会自动解析。为什么不用json.extract[DataBaseAlterJson]去解析，因为
     * case class定义直接固定字段，无法做到动态
     *
-    * @param str 传入待待解析待json字符串(此处对应处理binlog解析的insert元信息)
-    * @return 返回tuple  表明，字段与数据值的元组信息
+    * @param str    传入待待解析待json字符串(此处对应处理binlog解析的insert元信息)
+    * @param pkList 源表主键信息文件中所有表主键的list信息
+    * @return 返回tuple  主键值,表名，字段与数据值的元组信息
     */
-  def insertDataParse(str: String): List[(String, String, String)] = {
+  def insertDataParse(pkList: List[String], str: String): List[(String, String, String, String)] = {
 
     implicit val formats: DefaultFormats.type = DefaultFormats
 
@@ -32,9 +35,6 @@ object InsertDataJsonParse {
     }
     val tableName = tableData._2.extract[String]
 
-
-    //TODO row_key行键要根据表名去查找（表名--主键 关系对照表）然后确认主键，对主键加密后写入到hbase中作为rowkey
-
     //以下逻辑为了匹配到{"data":{"name":"guolei","age":23,"id":2}类型的数据，包括最终转化为tuple
     //添加sorted根据字典排序,这样在读入column-->value键值对时,可以做到相对有序
     val columnData = json match {
@@ -44,21 +44,29 @@ object InsertDataJsonParse {
         }
       }
     }
+
+    //获取外部定义的源表数据的主键
+    val primaryKeyList = getPK(pkList, tableName).flatMap(_.split(","))
+
+    /**
+      * 将获取到的联合主键列表拼接成一个大的字符串，然后应用于md5加密后生成离散量的数据，
+      * 这样既能保证数据的离散型也能保证通过相同加密后数据能够以相同的方式访问到指定数据
+      *
+      * @param pks
+      * @return
+      */
+    def unionPK(pks: List[String]): String = pks match {
+      case head :: tail =>
+        val mapcv = columnData.toMap
+        val mapscv = mapcv.map(x => (x._1, x._2.extract[String]))
+        mapscv.getOrElse(head, "") + unionPK(tail)
+      case _ => ""
+    }
+
+    //拼装成用于统一加密的主键字符串
+    val pk = unionPK(primaryKeyList)
+
     //处理成List[(String,String,String)] 数据表名--数据字段名--数据字段值
-    columnData.map(x => (tableName, x._1, x._2.extract[String]))
-
-
-
-
-    //以下是处理成(表名+列数据的json数据信息)
-    //    val columnData: JsonAST.JValue = json match {
-    //      case JObject(x) => x match {
-    //        case List(_, _, _, _, _, _, y) => y._2
-    //      }
-    //    }
-    //
-    //    val columns = compact(columnData)
-    //    (tableName,columns)
-
+    columnData.map(x => (pk, tableName, x._1, x._2.extract[String]))
   }
 }

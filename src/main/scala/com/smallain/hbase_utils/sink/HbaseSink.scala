@@ -7,7 +7,7 @@ import com.smallain.hbase_utils.dao.TableDao
 import com.smallain.utils.jsonparse.company.InsertDataJsonParse._
 import org.apache.hadoop.hbase.HBaseConfiguration
 import org.apache.hadoop.hbase.client.HTablePool
-import org.apache.spark.sql.ForeachWriter
+import org.apache.spark.sql.{ForeachWriter, SparkSession}
 import com.smallain.utils.Md5Utils._
 
 /**
@@ -25,7 +25,7 @@ import com.smallain.utils.Md5Utils._
   *
   * 所以针对于写入Hbase需要通过Foreach sink实现ForeachWriter
   */
-class HbaseSink() extends ForeachWriter[String] {
+class HbaseSink(pkList: List[String], pkConfigPath: String, zookeeperPath: String) extends ForeachWriter[String] {
 
   //初始化HTablePool连接池
   var pool = new HTablePool with Serializable
@@ -41,7 +41,7 @@ class HbaseSink() extends ForeachWriter[String] {
     */
   override def open(partitionId: Long, version: Long): Boolean = {
     val myConf = HBaseConfiguration.create()
-    myConf.set("hbase.zookeeper.quorum", "iz2zea86z2leonw09hpjijz:2181,iz2zea86z2leonw09hpjimz:2181,iz2zea86z2leonw09hpjilz:2181,iz2zea86z2leonw09hpjikz:2181")
+    myConf.set("hbase.zookeeper.quorum", zookeeperPath)
     pool = new HTablePool(myConf, 2147483647) with Serializable
     true
   }
@@ -56,24 +56,25 @@ class HbaseSink() extends ForeachWriter[String] {
     val td = new TableDao(pool)
     val now = new Date()
 
-    //生产当前时间戳
-    val millisecond = Instant.now().toEpochMilli; // 精确到毫秒 13 位
-    val second = Instant.now().getEpochSecond; // 精确到秒 10位
+    //    //生产当前时间戳
+    //    val millisecond = Instant.now().toEpochMilli; // 精确到毫秒 13 位
+    //    val second = Instant.now().getEpochSecond; // 精确到秒 10位
+    //
+    //    //数据加盐(salt):根据时间戳hash后对regionserver数量取模后确定数据加盐前缀
+    //    val salt = new Integer(millisecond.hashCode()).shortValue() % 46
 
-    //数据加盐(salt):根据时间戳hash后对regionserver数量取模后确定数据加盐前缀
-    val salt = new Integer(millisecond.hashCode()).shortValue() % 46
-
-    //row_key等于 rowkey= 数据加盐前缀+“|”+时间戳”
-    val rowkey = salt.toString + "|" + md5HashString(millisecond.toString)
 
     //将dataset中的数据值,根据模式匹配去处理不同类型的json数据,包括insert,update,delete等,返回的dataset包含处理后的json字符串结果
     val resp = value match {
-      case x if x.contains("insert") => insertDataParse(x)
+      case x if x.contains("insert") => insertDataParse(pkList, x)
     }
+
+    //row_key等于 rowkey= 数据加盐前缀+“|”+时间戳”
+    //val rowkey = md5HashString(millisecond.toString)
 
     //然后将处理后的结果通过hbase写入函数写入数据库,注意其中列簇因为无法明确获取，因为并不知道列簇所位于的具体位置,所以此处的列簇指定为“info”,因为binlog中并不会有列簇信息,
     //只有解析目标表hbase去获取列簇信息,但是binlog中的列无法动态识别如何与目标hbase表的列簇对应
-    resp.foreach(column => td.putTable(tableName = column._1, rowKey = rowkey, "info", columns = column._2, value = column._3))
+    resp.foreach(column => td.putTable(tableName = column._2, rowKey = md5HashString(column._1), "info", columns = column._3, value = column._4))
 
   }
 
