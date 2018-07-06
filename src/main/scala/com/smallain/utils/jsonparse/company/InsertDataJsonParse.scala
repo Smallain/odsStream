@@ -36,7 +36,6 @@ object InsertDataJsonParse {
     val tableName = tableData._2.extract[String]
 
     //以下逻辑为了匹配到{"data":{"name":"guolei","age":23,"id":2}类型的数据，包括最终转化为tuple
-    //添加sorted根据字典排序,这样在读入column-->value键值对时,可以做到相对有序
     val columnData = json match {
       case JObject(x) => x match {
         case List(_, _, _, _, _, _, y) => y._2 match {

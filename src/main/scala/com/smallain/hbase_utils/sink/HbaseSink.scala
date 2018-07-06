@@ -5,6 +5,7 @@ import java.util.Date
 
 import com.smallain.hbase_utils.dao.TableDao
 import com.smallain.utils.jsonparse.company.InsertDataJsonParse._
+import com.smallain.utils.jsonparse.company.updateDataJsonParse._
 import org.apache.hadoop.hbase.HBaseConfiguration
 import org.apache.hadoop.hbase.client.HTablePool
 import org.apache.spark.sql.{ForeachWriter, SparkSession}
@@ -67,7 +68,9 @@ class HbaseSink(pkList: List[String], pkConfigPath: String, zookeeperPath: Strin
     //将dataset中的数据值,根据模式匹配去处理不同类型的json数据,包括insert,update,delete等,返回的dataset包含处理后的json字符串结果
     val resp = value match {
       case x if x.contains("insert") => insertDataParse(pkList, x)
+      case x if x.contains("update") => updateDataParse(pkList, x)
     }
+
 
     //row_key等于 rowkey= 数据加盐前缀+“|”+时间戳”
     //val rowkey = md5HashString(millisecond.toString)
