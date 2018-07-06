@@ -67,8 +67,15 @@ class HbaseSink(pkList: List[String], pkConfigPath: String, zookeeperPath: Strin
 
     //将dataset中的数据值,根据模式匹配去处理不同类型的json数据,包括insert,update,delete等,返回的dataset包含处理后的json字符串结果
     val resp = value match {
-      case x if x.contains("insert") => insertDataParse(pkList, x)
-      case x if x.contains("update") => updateDataParse(pkList, x)
+      case x if x.contains("insert") =>
+        insertDataParse(pkList, x).foreach { column =>
+          td.putTable(tableName = column._2, rowKey = md5HashString(column._1), "info", columns = column._3, value = column._4)
+        }
+      case y if y.contains("update") =>
+        updateDataParse(pkList, y).foreach { column =>
+        td.putTable(tableName = column._2, rowKey = md5HashString(column._1), "info", columns = column._3, value = column._4)
+      }
+      case _ => List.empty
     }
 
 
@@ -77,7 +84,7 @@ class HbaseSink(pkList: List[String], pkConfigPath: String, zookeeperPath: Strin
 
     //然后将处理后的结果通过hbase写入函数写入数据库,注意其中列簇因为无法明确获取，因为并不知道列簇所位于的具体位置,所以此处的列簇指定为“info”,因为binlog中并不会有列簇信息,
     //只有解析目标表hbase去获取列簇信息,但是binlog中的列无法动态识别如何与目标hbase表的列簇对应
-    resp.foreach(column => td.putTable(tableName = column._2, rowKey = md5HashString(column._1), "info", columns = column._3, value = column._4))
+    //resp.foreach(column => td.putTable(tableName = column._2, rowKey = md5HashString(column._1), "info", columns = column._3, value = column._4))
 
   }
 

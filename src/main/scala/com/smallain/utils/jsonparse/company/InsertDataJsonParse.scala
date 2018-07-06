@@ -51,8 +51,8 @@ object InsertDataJsonParse {
       * 将获取到的联合主键列表拼接成一个大的字符串，然后应用于md5加密后生成离散量的数据，
       * 这样既能保证数据的离散型也能保证通过相同加密后数据能够以相同的方式访问到指定数据
       *
-      * @param pks
-      * @return
+      * @param pks 联合主键List
+      * @return 拼接的联合主键string
       */
     def unionPK(pks: List[String]): String = pks match {
       case head :: tail =>
