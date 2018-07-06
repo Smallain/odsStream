@@ -5,7 +5,8 @@ import java.util.Date
 
 import com.smallain.hbase_utils.dao.TableDao
 import com.smallain.utils.jsonparse.company.InsertDataJsonParse._
-import com.smallain.utils.jsonparse.company.updateDataJsonParse._
+import com.smallain.utils.jsonparse.company.UpdateDataJsonParse._
+import com.smallain.utils.jsonparse.company.DeleteDataJsonParse._
 import org.apache.hadoop.hbase.HBaseConfiguration
 import org.apache.hadoop.hbase.client.HTablePool
 import org.apache.spark.sql.{ForeachWriter, SparkSession}
@@ -67,14 +68,18 @@ class HbaseSink(pkList: List[String], pkConfigPath: String, zookeeperPath: Strin
 
     //将dataset中的数据值,根据模式匹配去处理不同类型的json数据,包括insert,update,delete等,返回的dataset包含处理后的json字符串结果
     val resp = value match {
-      case x if x.contains("insert") =>
-        insertDataParse(pkList, x).foreach { column =>
+      case ins if ins.contains("insert") =>
+        insertDataParse(pkList, ins).foreach { column =>
           td.putTable(tableName = column._2, rowKey = md5HashString(column._1), "info", columns = column._3, value = column._4)
         }
-      case y if y.contains("update") =>
-        updateDataParse(pkList, y).foreach { column =>
-        td.putTable(tableName = column._2, rowKey = md5HashString(column._1), "info", columns = column._3, value = column._4)
-      }
+      case upd if upd.contains("update") =>
+        updateDataParse(pkList, upd).foreach { column =>
+          td.putTable(tableName = column._2, rowKey = md5HashString(column._1), "info", columns = column._3, value = column._4)
+        }
+      case del if del.contains("delete") =>
+        deleteDataParse(pkList, del).foreach { column =>
+          td.deleteUser(tableName = column._2, rowKey = md5HashString(column._1))
+        }
       case _ => List.empty
     }
 
