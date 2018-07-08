@@ -3,6 +3,7 @@ package com.smallain.company
 import com.smallain.hbase_utils.sink.HbaseSink
 import com.smallain.utils.jsonparse.company.CanDoDataType._
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.storage.StorageLevel
 
 /**
 	* ODS层数据实时同步方案
@@ -32,8 +33,12 @@ object StructuredStreaming {
 			.format("kafka")
 			.option("kafka.bootstrap.servers", "192.168.31.101:9092,192.168.31.102:9092,192.168.31.103:9092")
 			.option("subscribe", "maxwell")
+			.option("StorageLevel", "MEMORY_AND_DISK_2")
+			.option("failOnDataLoss", "true")
 			.load()
 		
+		//读取的kafka 数据的存储级别，为了应对容错性，将数据源存储在内存和硬盘中，存储在硬盘中是为了在work崩溃时，重启work恢复数据处理。
+		//dataFrame.persist(StorageLevel.MEMORY_AND_DISK_2)
 		//获取主键List文件
 		val pkList = spark.read.textFile(tablePkConfigPath).collect().toList
 		
@@ -45,7 +50,10 @@ object StructuredStreaming {
 		//数据源表配置文件，其中包含数据源表的主键信息
 		
 		//通过自定义的sink即HbaseSink将获取到的dml语句和ddl语句的json-binlog信息以append追加的形式输出到hbase中
-		//设置checkpoint保证driver在重启时数据不会丢失
+		//设置checkpoint保证driver崩溃后在重启时数据不会丢失
+		//所以保持容错性：
+		//1.worker 的容错性--设置存储级别为dataFrame.persist(StorageLevel.MEMORY_AND_DISK_2)
+		//2.driver 的容错性--设置检查点（基于hdfs）option("checkpointLocation", "hdfs://192.168.31.102:8020/odsStream/checkpoint")
 		val query = dataSet.writeStream
 			.foreach(new HbaseSink(pkList, tablePkConfigPath, zookeeperPath))
 			.outputMode("append")
