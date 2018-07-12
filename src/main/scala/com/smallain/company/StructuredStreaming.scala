@@ -11,11 +11,11 @@ import org.apache.spark.storage.StorageLevel
 object StructuredStreaming {
 	def main(args: Array[String]): Unit = {
 		
-		//val zookeeperPath = "iz2zea86z2leonw09hpjijz:2181,iz2zea86z2leonw09hpjimz:2181,iz2zea86z2leonw09hpjilz:2181,iz2zea86z2leonw09hpjikz:2181"
-		//val tablePkConfigPath = "hdfs://10.200.48.67:8020/odsStream/table/pkconfig.txt"
+		val zookeeperPath = "iz2zea86z2leonw09hpjijz:2181,iz2zea86z2leonw09hpjimz:2181,iz2zea86z2leonw09hpjilz:2181,iz2zea86z2leonw09hpjikz:2181"
+		val tablePkConfigPath = "hdfs://10.200.48.67:8020/odsStream/table/pkconfig.txt"
 		
-		val zookeeperPath = "192.168.31.101:2181,192.168.31.102:2181,192.168.31.103:2181"
-		val tablePkConfigPath = "hdfs://192.168.31.102:8020/odsStream/table/pkconfig.txt"
+		//val zookeeperPath = "192.168.31.101:2181,192.168.31.102:2181,192.168.31.103:2181"
+		//val tablePkConfigPath = "hdfs://192.168.31.102:8020/odsStream/table/pkconfig.txt"
 		
 		//创建sparkSession入口,也是spark集群入口,切记local线程数一定要大于1,因为一个线程要用来作为监听listener
 		val spark = SparkSession
@@ -31,10 +31,10 @@ object StructuredStreaming {
 		val dataFrame = spark
 			.readStream
 			.format("kafka")
-			.option("kafka.bootstrap.servers", "192.168.31.101:9092,192.168.31.102:9092,192.168.31.103:9092")
-			.option("subscribe", "maxwell")
+			.option("kafka.bootstrap.servers", "iz2zea86z2leonw09hpjijz:9092,iz2zea86z2leonw09hpjimz:9092,iz2zea86z2leonw09hpjilz:9092,iz2zea86z2leonw09hpjikz:9092")
+			.option("subscribe", "testkafka")
 			.option("StorageLevel", "MEMORY_AND_DISK_2")
-			.option("failOnDataLoss", "true")
+			.option("failOnDataLoss", "false")
 			.load()
 		
 		//读取的kafka 数据的存储级别，为了应对容错性，将数据源存储在内存和硬盘中，存储在硬盘中是为了在work崩溃时，重启work恢复数据处理。
@@ -57,7 +57,7 @@ object StructuredStreaming {
 		val query = dataSet.writeStream
 			.foreach(new HbaseSink(pkList, tablePkConfigPath, zookeeperPath))
 			.outputMode("append")
-			.option("checkpointLocation", "hdfs://192.168.31.102:8020/odsStream/checkpoint")
+			.option("checkpointLocation", "hdfs://10.200.48.67:8020/odsStream/checkpoint")
 			.start()
 		
 		//启动Structed Streaming结构化Stream流

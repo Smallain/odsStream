@@ -30,15 +30,16 @@ object InsertDataJsonParse {
     //获取table表名
     val tableData = json match {
       case JObject(x) => x match {
-        case List(_, y, _, _, _, _, _) => y
+        case List(_, _, y, _, _) => y
       }
     }
+
     val tableName = tableData._2.extract[String]
 
     //以下逻辑为了匹配到{"data":{"name":"guolei","age":23,"id":2}类型的数据，包括最终转化为tuple
     val columnData = json match {
       case JObject(x) => x match {
-        case List(_, _, _, _, _, _, y) => y._2 match {
+        case List(y,_,_,_,_) => y._2 match {
           case JObject(z) => z.map(w => (w._1, w._2))
           case _ => List.empty
         }

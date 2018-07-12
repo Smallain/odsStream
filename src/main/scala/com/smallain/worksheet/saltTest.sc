@@ -20,9 +20,9 @@ def md5HashString(s: String): String = {
   val hashedString = bigInt.toString(16)
   hashedString
 }
-val wuyuhang = md5HashString("1329088818321")
+val wuyuhang = md5HashString("184020071284")
 
-val salt = new Integer(millisecond.hashCode()).shortValue() % 46
+//val salt = new Integer(millisecond.hashCode()).shortValue() % 46
 //5a38967c8abb3f2a4e281f58c660c8bf
 //5a38967c8abb3f2a4e281f58c660c8bf
 //5a38967c8abb3f2a4e281f58c660c8bf
