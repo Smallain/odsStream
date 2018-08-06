@@ -19,13 +19,14 @@ object StructuredStreaming {
       val zookeeperPath = argsMap.getOrElse("--zookeeper", "") //iz2zea86z2leonw09hpjijz:2181,iz2zea86z2leonw09hpjimz:2181,iz2zea86z2leonw09hpjilz:2181,iz2zea86z2leonw09hpjikz:2181
       val tablePkConfigPath = argsMap.getOrElse("--table-pk-config", "") //hdfs://10.200.48.67:8020/odsStream/table/pkconfig.txt
       val kafka = argsMap.getOrElse("--kafka-bootstrap-servers", "") //iz2zea86z2leonw09hpjijz:9092,iz2zea86z2leonw09hpjimz:9092,iz2zea86z2leonw09hpjilz:9092,iz2zea86z2leonw09hpjikz:9092
-      val kafkaTopic = argsMap.getOrElse("--kfktopic", "") //testkafka
+      val kafkaTopicPath = argsMap.getOrElse("--kfk-topic-config", "") //testkafka
       val sparkCheckPoint = argsMap.getOrElse("--spark-check-point", "") //hdfs://10.200.48.67:8020/odsStream/checkpoint
+
 
       println(zookeeperPath)
       println(tablePkConfigPath)
       println(kafka)
-      println(kafkaTopic)
+      println(kafkaTopicPath)
       println(sparkCheckPoint)
       //val zookeeperPath = "iz2zea86z2leonw09hpjijz:2181,iz2zea86z2leonw09hpjimz:2181,iz2zea86z2leonw09hpjilz:2181,iz2zea86z2leonw09hpjikz:2181"
       //val tablePkConfigPath = "hdfs://10.200.48.67:8020/odsStream/table/pkconfig.txt"
@@ -39,15 +40,23 @@ object StructuredStreaming {
         .master("local[*]")
         .getOrCreate()
 
+      //获取kafkaTopic的列表
+      val kafkaTopics = spark.read.textFile(kafkaTopicPath).collect().toList.head
+
+      println(s"订阅的topic集合是： $kafkaTopics")
+
       //引用spark必要的隐式转换参数
+
       import spark.implicits._
+
+
       //iz2zea86z2leonw09hpjijz:9092,iz2zea86z2leonw09hpjimz:9092,iz2zea86z2leonw09hpjilz:9092,iz2zea86z2leonw09hpjikz:9092
       //spark订阅kafka指定的topic信息
       val dataFrame = spark
         .readStream
         .format("kafka")
         .option("kafka.bootstrap.servers", "iz2zea86z2leonw09hpjijz:9092,iz2zea86z2leonw09hpjimz:9092,iz2zea86z2leonw09hpjilz:9092,iz2zea86z2leonw09hpjikz:9092")
-        .option("subscribe", kafkaTopic)
+        .option("subscribe", kafkaTopics)
         .option("StorageLevel", "MEMORY_AND_DISK_2")
         .option("failOnDataLoss", "false")
         .load()
@@ -56,6 +65,8 @@ object StructuredStreaming {
       //dataFrame.persist(StorageLevel.MEMORY_AND_DISK_2)
       //获取主键List文件
       val pkList = spark.read.textFile(tablePkConfigPath).collect().toList
+
+
 
 
       //分析kafka流过来的binlog数据,因为只关心dml语句和ddl语句的binlog信息,所以只取tuple的第二个元素即dml和ddl语句的json数据信息
